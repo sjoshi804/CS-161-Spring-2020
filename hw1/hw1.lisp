@@ -27,7 +27,7 @@
 ;Pre-order traversal of tree
 (defun TREE-ORDER  (tree) 
     (cond 
-        ((not(listp tree)) (cons tree NIL)) ;checks if tree is not a list, if so returns entire tree as a list
+        ((not(listp tree)) (list tree)) ;checks if tree is not a list, if so returns entire tree as a list
         (t (append (TREE-ORDER (second tree)) (TREE-ORDER (first tree)) (TREE-ORDER (third tree))))
     )
 )
@@ -70,5 +70,22 @@
         ((not(rest the_list)) (first the_list)) ;checks if list has only 1 element, if so returns just a leaf
         ((= (length the_list) 2) the_list)
         (t (list (LIST2BTREE (first (SPLIT-LIST the_list))) (LIST2BTREE (second (SPLIT-LIST the_list)))))
+    )
+)
+
+;Take a binary tree into a list
+(defun BTREE2LIST (tree) 
+    (cond 
+        ((not(listp tree)) (list tree))
+        (t (append (BTREE2LIST (first tree)) (BTREE2LIST (second tree))))
+    )
+)
+
+;A version of equals where atoms are only numbers
+(defun IS-SAME (exp1 exp2) 
+    (cond 
+        ((and (not exp1) (not exp2)) t)
+        ((and (not (listp exp1)) (not (listp exp2))) (= exp1 exp2))
+        ((and (listp exp1) (listp exp2)) (and (IS-SAME (first exp1) (first exp2)) (IS-SAME (rest exp1) (rest exp2))))
     )
 )
