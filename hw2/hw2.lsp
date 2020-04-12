@@ -96,7 +96,37 @@
 ; NOTE that next-state returns a list containing the successor state (which is
 ; itself a list); the return should look something like ((1 1 T)).
 (defun next-state (s m c)
-  ...
+  (let* 
+  (
+    (m_east 
+      (cond 
+        ((third s) (first s))
+        (t (- 3 (first s)))
+      )
+    )
+    (m_west (- 3 m_east))
+    (c_east 
+      (cond 
+        ((third s) (second s))
+        (t (- 3 (second s)))
+      )
+    )
+    (c_west (- 3 c_east))
+  )
+  (cond
+    ;if bank side is east
+    ((third s) 
+      (cond ;check if state would be legal, else let fall through and return NIL
+        ((and (<= (- c_east c) (- m_east m)) (<= (+ c_west c) (+ m_west m))) (list (+ c_west c) (+ m_west m) NIL))
+      )
+    )
+    ;else bank side is west
+    (t
+      (cond ;check if state would be legal, else let fall through and return NIL
+        ((and (<= (- c_west c) (- m_west m)) (<= (+ c_east c) (+ m_east m))) (list (+ c_east c) (+ m_east m) t))
+      )
+    )
+  ))
 )
 
 ; SUCC-FN returns all of the possible legal successor states to the current
@@ -104,8 +134,31 @@
 ; returns a list of each state that can be reached by applying legal operators
 ; to the current state.
 (defun succ-fn (s)
-  ...)
+  (let 
+  (
+    (m 
+    
+    )
 
+  )
+  (cond
+    ;check if boat on east side
+    ((third s) 
+      (cond 
+        ((and (>= c_east 2) (>= m_east 2)) (list (next-state s 2 0) (next-state s 0 2) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+        ((and (>= c_east 1) (>= m_east 2)) (list (next-state s 2 0) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+        ((and (>= c_east 2) (>= m_east 1)) (list (next-state s 0 2) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+        ((and (>= c_east 1) (>= m_east 1)) (list (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+        ((>= m_east 2) (list (next-state s 2 0) (next-state s 1 0)))
+        ((>= c_east 2) (list (next-state s 0 2) (next-state s 0 1)))
+        ((>= m_east 1) (list (next-state s 1 0)))
+        ((>= c_east 1) (list (next-state s 0 1)))
+      )
+    )
+  ))
+)
+
+#|
 ; ON-PATH checks whether the current state is on the stack of states visited by
 ; this depth-first search. It takes two arguments: the current state (s) and the
 ; stack of states visited by MC-DFS (states). It returns T if s is a member of
@@ -151,4 +204,4 @@
 ; succ-fn returns all of the legal states that can result from applying
 ; operators to the current state.
 ; (succ-fn '(3 3 t)) -> ((0 1 NIL) (1 1 NIL) (0 2 NIL))
-; (succ-fn '(1 1 t)) -> ((3 2 NIL) (3 3 NIL))
+; (succ-fn '(1 1 t)) -> ((3 2 NIL) (3 3 NIL)) |#
