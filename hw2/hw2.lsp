@@ -80,7 +80,7 @@
 ; FINAL-STATE takes a single argument s, the current state, and returns T if it
 ; is the goal state (3 3 NIL) and NIL otherwise.
 (defun final-state (s)
-  (= s '(3 3 NIL))
+  (equal s '(3 3 NIL))
 )
 
 ; NEXT-STATE returns the state that results from applying an operator to the
@@ -98,34 +98,14 @@
 (defun next-state (s m c)
   (let* 
   (
-    (m_east 
-      (cond 
-        ((third s) (first s))
-        (t (- 3 (first s)))
-      )
-    )
-    (m_west (- 3 m_east))
-    (c_east 
-      (cond 
-        ((third s) (second s))
-        (t (- 3 (second s)))
-      )
-    )
-    (c_west (- 3 c_east))
+    (side (third s)) ;side of the river
+    (m_this_side (first s))
+    (m_other_side (- 3 m_this_side))
+    (c_this_side (second s))
+    (c_other_side (- 3 c_this_side))
   )
   (cond
-    ;if bank side is east
-    ((third s) 
-      (cond ;check if state would be legal, else let fall through and return NIL
-        ((and (<= (- c_east c) (- m_east m)) (<= (+ c_west c) (+ m_west m))) (list (+ c_west c) (+ m_west m) NIL))
-      )
-    )
-    ;else bank side is west
-    (t
-      (cond ;check if state would be legal, else let fall through and return NIL
-        ((and (<= (- c_west c) (- m_west m)) (<= (+ c_east c) (+ m_east m))) (list (+ c_east c) (+ m_east m) t))
-      )
-    )
+    ((and (or (= (- m_this_side m) 0) (<= (- c_this_side c) (- m_this_side m))) (or (= (+ m_other_side m) 0) (<= (+ c_other_side c) (+ m_other_side m)))) (list (list (+ m_other_side m) (+ c_other_side c)  (not side))))
   ))
 )
 
@@ -134,37 +114,32 @@
 ; returns a list of each state that can be reached by applying legal operators
 ; to the current state.
 (defun succ-fn (s)
-  (let 
-  (
-    (m 
-    
-    )
-
-  )
+  (let ((m (first s)) (c (second s)))
   (cond
-    ;check if boat on east side
-    ((third s) 
-      (cond 
-        ((and (>= c_east 2) (>= m_east 2)) (list (next-state s 2 0) (next-state s 0 2) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
-        ((and (>= c_east 1) (>= m_east 2)) (list (next-state s 2 0) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
-        ((and (>= c_east 2) (>= m_east 1)) (list (next-state s 0 2) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
-        ((and (>= c_east 1) (>= m_east 1)) (list (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
-        ((>= m_east 2) (list (next-state s 2 0) (next-state s 1 0)))
-        ((>= c_east 2) (list (next-state s 0 2) (next-state s 0 1)))
-        ((>= m_east 1) (list (next-state s 1 0)))
-        ((>= c_east 1) (list (next-state s 0 1)))
-      )
-    )
+    ((and (>= c 2) (>= m 2)) (append (next-state s 2 0) (next-state s 0 2) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+    ((and (>= c 1) (>= m 2)) (append (next-state s 2 0) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+    ((and (>= c 2) (>= m 1)) (append (next-state s 0 2) (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+    ((and (>= c 1) (>= m 1)) (append (next-state s 1 1) (next-state s 1 0) (next-state s 0 1)))
+    ((>= m 2) (append (next-state s 2 0) (next-state s 1 0)))
+    ((>= c 2) (append (next-state s 0 2) (next-state s 0 1)))
+    ((>= m 1) (append (next-state s 1 0)))
+    ((>= c 1) (append (next-state s 0 1)))
   ))
 )
 
-#|
+
 ; ON-PATH checks whether the current state is on the stack of states visited by
 ; this depth-first search. It takes two arguments: the current state (s) and the
 ; stack of states visited by MC-DFS (states). It returns T if s is a member of
 ; states and NIL otherwise.
 (defun on-path (s states)
-  ...)
+  (cond 
+    ((not states) NIL) ;if states is empty return NIL
+    ((equal s (first states)) t)
+    (t (on-path s (rest states)))
+  )
+)
+
 
 ; MULT-DFS is a helper function for MC-DFS. It takes two arguments: a stack of
 ; states from the initial state to the current state (path), and the legal
@@ -175,7 +150,11 @@
 ; NIL. 
 ; Note that the path should be ordered as: (S_n ... S_2 S_1 S_0)
 (defun mult-dfs (states path)
-  ...)
+  (cond
+    ((not states) NIL)
+    (t (or (mc-dfs (first states) path) (mult-dfs (rest states) path)))
+  )
+)
 
 ; MC-DFS does a depth first search from a given state to the goal state. It
 ; takes two arguments: a state (S) and the path from the initial state to S
@@ -186,7 +165,12 @@
 ; ensuring that the depth-first search does not revisit a node already on the
 ; search path.
 (defun mc-dfs (s path)
-  ...)
+  (cond
+    ((final-state s) (cons s path))
+    ((on-path s path) NIL)
+    (t (mult-dfs (succ-fn s) (cons s path)))
+  )
+)
 
 
 
@@ -204,4 +188,4 @@
 ; succ-fn returns all of the legal states that can result from applying
 ; operators to the current state.
 ; (succ-fn '(3 3 t)) -> ((0 1 NIL) (1 1 NIL) (0 2 NIL))
-; (succ-fn '(1 1 t)) -> ((3 2 NIL) (3 3 NIL)) |#
+; (succ-fn '(1 1 t)) -> ((3 2 NIL) (3 3 NIL)) 
