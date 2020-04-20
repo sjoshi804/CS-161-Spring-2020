@@ -179,7 +179,7 @@
 (defun goal-test (s)
   (cond
 	((not s) t) ;if checked all rows, return true
-	((goal-row-test (first s) (goal-test (rest s))) ;check first row, if okay check rest of rows
+	((goal-row-test (first s) (goal-test (rest s)))) ;check first row, if okay check rest of rows
   )
 )
 
@@ -211,26 +211,83 @@
 ;
 (defun next-states (s)
   (let* ((pos (getKeeperPosition s 0))
-	 (x (car pos))
-	 (y (cadr pos))
+	 (col (car pos))
+	 (row (cadr pos))
 	 ;x and y are now the coordinate of the keeper in s.
-	 (result nil)
-	 )
+	 (result 
+	 	(list 
+		 (try-move s row col (- row 1) col (- row 2) col) ;consider move into square up  
+		 (try-move s row col row (+ col 1) row (+ col 2)) ;consdier move into square right
+		 (try-move s row col (+ row 1) col (+ row 2) col) ;consider move into square down
+		 (try-move s row col row (- col 1) row (- col 2)) ;consider move into square left
+	 ))
+	)
     (cleanUpList result);end
    );end let
-  );
+);
+
+;Helper function to get nth element of a list
+(defun get-nth-el (the_list index)
+	(cond 
+		((>= index 0) (first (nthcdr index the_list)))
+	)
+)
+
+;Helper function to set nth element of a list to val
+(defun set-nth-el (the_list index val)
+	(cond
+		((= index 0) (cons val (rest the_list)))
+		(t (cons (first the_list) (set-nth-el (rest the_list) (- index 1) val)))
+	)
+)
+
+;Gets value at row, col else returns wall
+(defun get-square (s row col)
+	(or (get-nth-el (get-nth-el s row) col) wall) ;if get-nth-el returns nil then out of bounds so return wall
+)
+
+(defun set-square (s row col val)
+	(set-nth-el s row (set-nth-el (get-nth-el s row) col val)) 
+	;sets the col_th element of the row of s to val and 
+	;then sets that row in s to the new row 
+)
+
+;try move - tries to move keeper from current pos to square 1 - returns new state if square 1 is a valid empty square or 
+;square 1 is a box and square 2 is empty valid else retuns nil
+;_r -> means row number, _c -> means col number
+(defun try-move (s keeper_r keeper_c square_1_r square_1_c square_2_r square_2_c)
+	(let* ((square1 (get-square s square_1_r square_1_c)) (square2 (get-square s square_2_r square_2_c))
+		(keeperSquare (get-square s keeper_r keeper_c)) ;gets whats on keeper square
+		(blankOrStar (cond ((isKeeperStar keeperSquare) star) ((isKeeper keeperSquare) blank)))) ;checks if keeper currently on blank or goal to accordingly replace after move
+	(cond
+		;if square 1 is a regular blank
+		((isBlank square1) (set-square (set-square s square_1_r square_1_c keeper) keeper_r keeper_c blankOrStar)) 
+		;if square 1 is a blank goal state
+		((isStar square1) (set-square (set-square s square_1_r square_1_c keeperstar) keeper_r keeper_c blankOrStar)) 
+		;if square 1 is regular box and square 2 is regular blank
+		((and (isBox square1) (isBlank square2)) (set-square (set-square (set-square s square_2_r square_2_c box) square_1_r square_1_c keeper) keeper_r keeper_c blankOrStar))
+		;if square 1 is box on goal and square 2 is regular blank
+		((and (isBoxStar square1) (isBlank square2)) (set-square (set-square (set-square s square_2_r square_2_c box) square_1_r square_1_c keeperstar) keeper_r keeper_c blankOrStar))
+		;if square 1 is a regular box and square 2 is blank goal state
+		((and (isBox square1) (isStar square2)) (set-square (set-square (set-square s square_2_r square_2_c boxstar) square_1_r square_1_c keeper) keeper_r keeper_c blankOrStar))
+		;if square 1 is a box on goal and square 2 is a blank goal state
+		((and (isBoxStar square1) (isStar square2)) (set-square (set-square (set-square s square_2_r square_2_c boxstar) square_1_r square_1_c keeperstar) keeper_r keeper_c blankOrStar))
+	))
+)
 
 ; EXERCISE: Modify this function to compute the trivial 
 ; admissible heuristic.
 ;
 (defun h0 (s)
-  )
+	0
+)
 
 ; EXERCISE: Modify this function to compute the 
 ; number of misplaced boxes in s.
 ;
 (defun h1 (s)
-  )
+	0
+)
 
 ; EXERCISE: Change the name of this function to h<UID> where
 ; <UID> is your actual student ID number. Then, modify this 
@@ -242,7 +299,8 @@
 ; running time of a function call.
 ;
 (defun hUID (s)
-  )
+	0
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
