@@ -179,14 +179,14 @@
 (defun goal-test (s)
   (cond
 	((not s) t) ;if checked all rows, return true
-	((goal-row-test (first s) (goal-test (rest s)))) ;check first row, if okay check rest of rows
+	((goal-row-test (first s)) (goal-test (rest s))) ;check first row, if okay check rest of rows
   )
 )
 
 (defun goal-row-test (row) ;ensure that no row has a box or keeper not in goal state
 	(cond
 		((not row) t) ;check if row completed
-		((and (not (isBox (first row)) (isKeeper (first row)))) (goal-row-test (rest row)))
+		((and (not (isBox (first row))) (not (isKeeper (first row)))) (goal-row-test (rest row)))
 	)
 )
 
@@ -298,7 +298,7 @@
 ; The Lisp 'time' function can be used to measure the 
 ; running time of a function call.
 ;
-(defun hUID (s)
+(defun h105032378 (s)
 	0
 )
 
