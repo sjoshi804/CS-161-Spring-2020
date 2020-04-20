@@ -286,7 +286,10 @@
 ; number of misplaced boxes in s.
 ;
 (defun h1 (s)
-	0
+	(cond 
+		((not s) 0)
+		(t (+ (count box (first s)) (h1 (rest s))))
+	)
 )
 
 ; EXERCISE: Change the name of this function to h<UID> where
