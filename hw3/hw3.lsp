@@ -306,14 +306,13 @@
 ; If heuristic time is not a concern, t 0 -> can be replaced with t some other heuristic like manhattan dist
 (defun h105032378 (s)
 	(cond 
-		((deadlock s) 1000)
-		(t 0)
+		((deadlock s) 4000)
+		(t (min-dist s))
 	)
 )
 
 ;Idea in deadlock detection is to detect boxes that are not in goal state
-;and cannot be moved anymore since they are surrounded on atleast 2 sides 
-;with boxes (w or without goals) or walls
+;and cannot be moved anymore 
 ;These cases are unsolvable and hence assigned heuristic score of 4000 
 ;which is like an INT_MAX here
 (defun deadlock (s)
@@ -331,42 +330,134 @@
 	)
 )
 
-;Checks if box is obstacle, returns 1 if obstacle 0 otherwise - number returned to quickly check number
-;of obstacles around box
+;Checks if box is wall or NIL
 (defun isObstacle (square)
 	(or (not square) (isWall square))
 )
+
+(defun isUnmoveable (square)
+	(or (isObstacle square) (isBoxStar square) (isBox square))
+)
+
 
 (defun check-for-deadlock (s row_num col_num)
 	(let*
 		((prev_row (car s)) ;get first row - set to previous row
 		(curr_row (cadr s)) ;second row of state is current row
 		(next_row (caddr s)) ;thirs row of state is next row
-		(up (get-nth-el prev_row col_num)) ;col_th el of prev_row is up square
-		(down (get-nth-el next_row col_num)) ;col_th el of next_row is up square
-		(squares (nthcdr (- col_num 1) curr_row)) ;get list starting at relevant squares of current_row
-		(left (car squares)) ;first element of above list
-		(current_square (cadr squares)) ;second element of squares
-		(right (caddr squares))) ;third element of squares
+		 ;get list starting at relevant squares of prev_row
+		(prev_squares (nthcdr (- col_num 1) prev_row))
+		(up_left (car prev_squares)) ;first element of above list
+		(up (cadr prev_squares)) ;second element of squares
+		(up_right (caddr prev_squares)) ;third element of squares
+		;get list starting at relevant squares of current_row
+		(curr_squares (nthcdr (- col_num 1) curr_row)) 
+		(left (car curr_squares)) ;first element of above list
+		(current_square (cadr curr_squares)) ;second element of squares
+		(right (caddr curr_squares)) 
+		;get list starting at relevant squares of next_row
+		(next_squares (nthcdr (- col_num 1) next_row)) 
+		(down_left (car next_squares))
+		(down (cadr next_squares)) 
+		(down_right (caddr next_squares))) 
 	(cond
 		((not next_row) NIL) ;if current_row is last row, then don't bother, must be all wall
 		((and (isBox current_square)
 			(or 
 				;if row above/below is wall, check if boxes can reach goals
-		;		(and (= row_num 1) (not (boxesCanReachGoal curr_row 0 0)))
-		;		(and (not (cdddr s)) (not (boxesCanReachGoal curr_row 0 0)))
+				(and (= row_num 1) (not (boxesCanReachGoal curr_row 0 0)))
+				(and (not (cdddr s)) (not (boxesCanReachGoal curr_row 0 0)))
 				;check if box is in a corner
-				(and (isObstacle up) (isObstacle right)) (and (isObstacle up) (isObstacle left))
-				(and (isObstacle down) (isObstacle right)) (and (isObstacle up) (isObstacle left)))
+				(and (isObstacle up) (isObstacle right)) 
+				(and (isObstacle up) (isObstacle left))
+				(and (isObstacle down) (isObstacle right)) 
+				(and (isObstacle up) (isObstacle left))
+				;check if 2 or 4 box deadock
+ 				(and (isUnmoveable up) (isUnmoveable up_right) (isUnmoveable right))
+				(and (isUnmoveable up) (isUnmoveable up_left) (isUnmoveable left))
+				(and (isUnmoveable down) (isUnmoveable down_right) (isUnmoveable right))
+				(and (isUnmoveable down) (isUnmoveable down_left) (isUnmoveable left))
 			)
+		)
 			t
 		)
-		(t ;not a deadlock position
+		(t ;not a deadlock position detectable by logic above
 		(cond 
 			((not right) (check-for-deadlock (rest s) (+ row_num 1) 1)) ;if row over, go to next row
 			(t (check-for-deadlock s row_num (+ col_num 1))) ;else check next element in row
 		))
 	))
+)
+
+(defun min-dist (s)
+	(let 
+		((boxes (get-pos-of-x (list box -1 -1) s 0 0))
+		 (stars (get-pos-of-x (list boxstar star keeperstar) s 0 0)))
+	
+	(+ (sokoban_to_closest s boxes) (boxes-to-closest boxes stars))
+	)
+)
+
+(defun sokoban_to_closest (s y)
+	(let*
+	(
+		(list_pos (getKeeperPosition s 0))
+		(row_num (second list_pos))
+		(col_num (first list_pos))
+		(keeper-pos (cons row_num col_num))
+	)
+	(cond 
+		((not y) 0)
+		(t (from-x-to-closest-y keeper-pos y))
+	)
+	
+	)
+)
+
+(defun boxes-to-closest (boxes y)
+	(cond 
+		((not boxes) 0)
+		(t 
+		(+ (from-x-to-closest-y (first boxes) y) (boxes-to-closest (rest boxes) y)))
+	)
+)
+
+(defun get-pos-of-x (vals s row_num col_num)
+	(cond 
+		((not s) NIL)
+		((not (caar s)) 
+			(get-pos-of-x vals (rest s) (+ row_num 1) 0))
+		((or (= (caar s) (first vals)) (= (caar s) (second vals)) (= (caar s) (third vals)))
+			(cons 
+				(cons row_num col_num) 
+				(get-pos-of-x 
+					vals 
+					(cons (cdar s) (rest s))
+					row_num
+					(+ col_num 1)
+				) 
+			)
+		)
+		(t 
+			(get-pos-of-x 
+				vals 
+				(cons (cdar s) (rest s))
+				row_num
+				(+ col_num 1)
+			) 			
+		)	
+	) 
+)
+
+(defun manhattan-dist (x y)
+	(+ (abs (- (first x) (first y))) (abs (- (cdr x) (cdr y))))
+)
+
+(defun from-x-to-closest-y (x list_of_y)
+	(cond
+		((not list_of_y) 5000)
+		(t (min  (manhattan-dist x (first list_of_y)) (from-x-to-closest-y x (rest list_of_y))))
+	)
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -494,7 +585,8 @@
 	    (1 1 1 1 1 1 0 0 0 0)))
 
 ;(?)
-(setq p14 '((0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0)
+(setq p14 
+	  '((0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0)
 	    (0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0)
 	    (1 1 1 1 1 0 0 0 0 0 0 1 1 1 1 1)
 	    (0 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0)
@@ -511,7 +603,8 @@
 	    ))
 
 ;(?)
-(setq p15 '((0 0 1 1 1 1 1 1 1 0)
+(setq p15 
+	  '((0 0 1 1 1 1 1 1 1 0)
 	    (1 1 1 0 0 1 1 1 1 0)
 	    (1 0 0 2 0 0 0 1 1 0)
 	    (1 3 2 0 2 0 0 0 1 0)
