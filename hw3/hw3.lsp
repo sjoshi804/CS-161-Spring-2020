@@ -301,10 +301,73 @@
 ; The Lisp 'time' function can be used to measure the 
 ; running time of a function call.
 ;
+; Idea is to keep heuristic fast, spend time only using heuristic to detect dead games
+; Rather than focusing on using the heuristic to order the games better
+; If heuristic time is not a concern, t 0 -> can be replaced with t some other heuristic like manhattan dist
 (defun h105032378 (s)
-	0
+	(cond 
+		((deadlock s) 1000)
+		(t 0)
+	)
 )
 
+;Idea in deadlock detection is to detect boxes that are not in goal state
+;and cannot be moved anymore since they are surrounded on atleast 2 sides 
+;with boxes (w or without goals) or walls
+;These cases are unsolvable and hence assigned heuristic score of 4000 
+;which is like an INT_MAX here
+(defun deadlock (s)
+	(check-for-deadlock s 1 1)
+)
+
+(defun boxesCanReachGoal (row num_box num_goals)
+	(cond
+		((not row) t)
+		((isWall (first row)) (and (>= num_box num_goals) (boxesCanReachGoal (rest row) 0 0)))
+		((isBox (first row)) (boxesCanReachGoal (rest row) (+ num_box 1) num_goals))
+		((or (isStar (first row)) (isKeeperStar (first row))) 
+			(boxesCanReachGoal (rest row) num_box (+ num_goals 1)))
+		(t (boxesCanReachGoal (rest row) num_box num_goals))
+	)
+)
+
+;Checks if box is obstacle, returns 1 if obstacle 0 otherwise - number returned to quickly check number
+;of obstacles around box
+(defun isObstacle (square)
+	(or (not square) (isWall square))
+)
+
+(defun check-for-deadlock (s row_num col_num)
+	(let*
+		((prev_row (car s)) ;get first row - set to previous row
+		(curr_row (cadr s)) ;second row of state is current row
+		(next_row (caddr s)) ;thirs row of state is next row
+		(up (get-nth-el prev_row col_num)) ;col_th el of prev_row is up square
+		(down (get-nth-el next_row col_num)) ;col_th el of next_row is up square
+		(squares (nthcdr (- col_num 1) curr_row)) ;get list starting at relevant squares of current_row
+		(left (car squares)) ;first element of above list
+		(current_square (cadr squares)) ;second element of squares
+		(right (caddr squares))) ;third element of squares
+	(cond
+		((not next_row) NIL) ;if current_row is last row, then don't bother, must be all wall
+		((and (isBox current_square)
+			(or 
+				;if row above/below is wall, check if boxes can reach goals
+		;		(and (= row_num 1) (not (boxesCanReachGoal curr_row 0 0)))
+		;		(and (not (cdddr s)) (not (boxesCanReachGoal curr_row 0 0)))
+				;check if box is in a corner
+				(and (isObstacle up) (isObstacle right)) (and (isObstacle up) (isObstacle left))
+				(and (isObstacle down) (isObstacle right)) (and (isObstacle up) (isObstacle left)))
+			)
+			t
+		)
+		(t ;not a deadlock position
+		(cond 
+			((not right) (check-for-deadlock (rest s) (+ row_num 1) 1)) ;if row over, go to next row
+			(t (check-for-deadlock s row_num (+ col_num 1))) ;else check next element in row
+		))
+	))
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #|
