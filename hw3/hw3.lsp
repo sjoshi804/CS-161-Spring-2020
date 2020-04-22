@@ -316,13 +316,68 @@
 ;These cases are unsolvable and hence assigned heuristic score of 4000 
 ;which is like an INT_MAX here
 (defun deadlock (s)
-	(check-for-deadlock s 1 1)
+	(or (not (boxesCanReachGoal (first s) 0 0)) (check-for-deadlock s 1 1)
+	(firstLastColumnCheck s))
+	;check if first row has boxes that can reach goals if so 
+	;check for deadlock
+	;check for deadlock due to box trapped in left most or right most column
 )
+
+(defun firstLastColumnCheck (s) 
+	(let* 	
+	(
+		(first_two_col (get_first_two_col s))
+		(first_col (first first_two_col))
+		(second_col (second first_two_col))
+		(last_two_col (get_first_two_col (reverse s)))
+		(last_col (first last_two_col))
+		(second_last_col (second last_two_col))
+	)
+	(or 
+		(and 
+			(isWallRow first_col)
+			(not (boxesCanReachGoal second_col 0 0))
+		)
+		(not (boxesCanReachGoal first_col 0 0))
+		(and 
+			(isWallRow last_col)
+			(not (boxesCanReachGoal second_last_col 0 0))
+		)		
+		(not (boxesCanReachGoal last_col 0 0))
+	))
+)
+
+(defun isWallRow (row)
+	(cond
+		((not row) T)
+		((not (isWall (first row))) NIL)
+		(t (isWallRow (rest row)))
+	)
+)
+
+(defun get_first_two_col (s)
+	(cond
+		((not s) (list NIL NIL))
+		(t 
+
+		(let 
+			((recursive_case (get_first_two_col (rest s))))
+		
+			(list 
+				(cons (first (first s)) (first recursive_case))
+				(cons (second (first s)) (second recursive_case))
+			)
+		)
+		
+		)
+	)
+)
+
 
 (defun boxesCanReachGoal (row num_box num_goals)
 	(cond
-		((not row) t)
-		((isWall (first row)) (and (>= num_box num_goals) (boxesCanReachGoal (rest row) 0 0)))
+		((not row) (<= num_box num_goals))
+		((isWall (first row)) (and (<= num_box num_goals) (boxesCanReachGoal (rest row) 0 0)))
 		((isBox (first row)) (boxesCanReachGoal (rest row) (+ num_box 1) num_goals))
 		((or (isStar (first row)) (isKeeperStar (first row))) 
 			(boxesCanReachGoal (rest row) num_box (+ num_goals 1)))
@@ -361,12 +416,11 @@
 		(down (cadr next_squares)) 
 		(down_right (caddr next_squares))) 
 	(cond
-		((not next_row) NIL) ;if current_row is last row, then don't bother, must be all wall
+		((not next_row) NIL) ;
 		((and (isBox current_square)
 			(or 
-				;if row above/below is wall, check if boxes can reach goals
-				(and (= row_num 1) (not (boxesCanReachGoal curr_row 0 0)))
-				(and (not (cdddr s)) (not (boxesCanReachGoal curr_row 0 0)))
+				;if row below is wall, check if boxes can reach goals
+			       	(and (not (cdddr s)) (isWallRow next_row) (not (boxesCanReachGoal curr_row 0 0)))
 				;check if box is in a corner
 				(and (isObstacle up) (isObstacle right)) 
 				(and (isObstacle up) (isObstacle left))
@@ -377,10 +431,24 @@
 				(and (isUnmoveable up) (isUnmoveable up_left) (isUnmoveable left))
 				(and (isUnmoveable down) (isUnmoveable down_right) (isUnmoveable right))
 				(and (isUnmoveable down) (isUnmoveable down_left) (isUnmoveable left))
+				;wide special deadlock positions
+				(and (isUnmoveable up) (isUnmoveable up_left) (isObstacle down_left)
+				(not (elt curr_row (- col_num 2))) (isObstacle (elt curr_row (- col_num 2))))
 			)
 		)
 			t
 		)
+		((and (isBlank current_square)
+			(or 
+				;blank centric deadlock 1
+				(and up (isBox up) up_right (isBox up_right) right (isBox right) (isObstacle left) (isObstacle down))
+			)
+		)
+			t
+		)
+		;check if last row has any boxes that can't reach goals
+		((and (not (cdddr s)) (not (boxesCanReachGoal next_row 0 0))) t)
+		
 		(t ;not a deadlock position detectable by logic above
 		(cond 
 			((not right) (check-for-deadlock (rest s) (+ row_num 1) 1)) ;if row over, go to next row
