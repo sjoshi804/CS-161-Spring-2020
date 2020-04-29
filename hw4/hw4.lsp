@@ -72,37 +72,15 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Functions that help you parse CNF from files in folder cnfs/
-; You need not modify any functions in this section
-; Usage (solve-cnf <path-to-file>)
-; e.g., (solve-cnf "./cnfs/f1/sat-f1.cnf")
+;            Testing Helper Functions                  ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(defun split-line (line)
-  (if (equal line :eof)
-      :eof
-      (with-input-from-string (s line) (loop for x = (read s nil) while x collect x))))
-
-(defun read-cnf (filename)
-  (with-open-file (in filename)
-    (loop for line = (split-line (read-line in nil :eof)) until (equal line :eof)
-      if (equal 'p (first line)) collect (third line)      ; var count
-      if (integerp (first line)) collect (butlast line)))) ; clause
-
-(defun parse-cnf (filename)
-  (let ((cnf (read-cnf filename))) (list (car cnf) (cdr cnf))))
-
-; Following is a helper function that combines parse-cnf and sat?
-(defun solve-cnf (filename)
-  (let ((cnf (parse-cnf filename))) (sat? (first cnf) (second cnf))))
-
-; Testing functions
 
 ;Check solution
 (defun check-solution (filename assignment)
   (let ((cnf (parse-cnf filename))) 
-  (and     ( = (length assignment) (first cnf))
+  (and     
+    (= (length assignment) (first cnf))
     (satisfying-assignment (second cnf) assignment)
   ))
 )
@@ -131,3 +109,29 @@
     (t (or (member (first clause) assignment) (satisfies-clause (rest clause) assignment)))
   )
 )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Functions that help you parse CNF from files in folder cnfs/
+; You need not modify any functions in this section
+; Usage (solve-cnf <path-to-file>)
+; e.g., (solve-cnf "./cnfs/f1/sat-f1.cnf")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defun split-line (line)
+  (if (equal line :eof)
+      :eof
+      (with-input-from-string (s line) (loop for x = (read s nil) while x collect x))))
+
+(defun read-cnf (filename)
+  (with-open-file (in filename)
+    (loop for line = (split-line (read-line in nil :eof)) until (equal line :eof)
+      if (equal 'p (first line)) collect (third line)      ; var count
+      if (integerp (first line)) collect (butlast line)))) ; clause
+
+(defun parse-cnf (filename)
+  (let ((cnf (read-cnf filename))) (list (car cnf) (cdr cnf))))
+
+; Following is a helper function that combines parse-cnf and sat?
+(defun solve-cnf (filename)
+  (let ((cnf (parse-cnf filename))) (sat? (first cnf) (second cnf))))
