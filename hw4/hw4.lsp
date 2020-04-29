@@ -9,14 +9,14 @@
 ; param n: number of variables in delta
 ; param delta: a CNF represented as a list of lists
 (defun sat? (n delta)
-  (backtrack-search delta NIL (list-1-to-n n))
+  (backtrack-search delta NIL (list-of-n n))
 )
 
-(defun list-1-to-n (n)
+(defun list-of-n (n)
   (cond 
-    ((= n 0) NIL)
-    (t (append (list-1-to-n (- n 1)) (list n)))
-  ) 
+    ((= 0 n) NIL)
+    (t (cons n (list-of-n (- n 1))))
+  )
 )
 
 (defun backtrack-search (delta assignment unassigned)
@@ -53,16 +53,16 @@
     (
       (elem (first clause))
       (negated? (< elem 0))
-      (elem_true? (and (member (abs elem) assignment) t))
-      (elem_false? (and (member (negate (abs elem)) assignment) t))
+      (elem-true? (and (member (abs elem) assignment) t))
+      (elem-false? (and (member (negate (abs elem)) assignment) t))
     )
     (cond
       ;no value assigned to element, then unassigned var exists in clause, can be SAT
-      ((and (not elem_true?) (not elem_false?)) t)
+      ((and (not elem-true?) (not elem-false?)) t)
       ;if negated, assignment = 0 or if clause not empty recurse
-      (negated? (or elem_false? (and (rest clause) (check-assign-clause (rest clause) assignment))))
+      (negated? (or elem-false? (and (rest clause) (check-assign-clause (rest clause) assignment))))
       ;else, assignment = 1 or recurse if clause not empty
-      (t (or elem_true? (and (rest clause) (check-assign-clause (rest clause) assignment))))
+      (t (or elem-true? (and (rest clause) (check-assign-clause (rest clause) assignment))))
     )
   )
 )
@@ -75,7 +75,7 @@
 ; Functions that help you parse CNF from files in folder cnfs/
 ; You need not modify any functions in this section
 ; Usage (solve-cnf <path-to-file>)
-; e.g., (solve-cnf "./cnfs/f1/sat_f1.cnf")
+; e.g., (solve-cnf "./cnfs/f1/sat-f1.cnf")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
